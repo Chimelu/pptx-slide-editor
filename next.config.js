@@ -1,18 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
+  experimental: {
+    esmExternals: 'loose',
+  },
+  webpack: (config, { isServer }) => {
+    // Handle Fabric.js and canvas dependencies
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+        fs: false,
+        path: false,
+        crypto: false,
+        stream: false,
+        util: false,
+        buffer: false,
+        process: false,
+      }
+    }
+
     // Handle Fabric.js properly
-    config.externals = config.externals || [];
-    
-    // Ensure Fabric.js is bundled properly
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      canvas: false,
-      fs: false,
-      path: false,
-    };
-    
-    return config;
+    config.externals = config.externals || []
+    config.externals.push({
+      canvas: 'canvas',
+      'jsdom': 'jsdom',
+    })
+
+    return config
   },
 }
 

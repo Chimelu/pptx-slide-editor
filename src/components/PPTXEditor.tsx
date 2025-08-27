@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { PPTXParser } from '@/utils/pptxParser'
+import { PPTXApiService } from '@/services/pptxApi'
 import { PPTXDocument } from '@/types/pptx'
 import { useEditorStore } from '@/store/editorStore'
 import { UploadArea } from './UploadArea'
 import { Toolbar } from './Toolbar'
 import { ThumbnailRail } from './ThumbnailRail'
 import { SlideCanvas } from './SlideCanvas'
+import { toast } from 'react-hot-toast'
 
 export function PPTXEditor() {
   const [isLoading, setIsLoading] = useState(false)
@@ -15,18 +16,18 @@ export function PPTXEditor() {
 
   const handleFileUpload = async (file: File) => {
     if (!file.name.endsWith('.pptx')) {
-      alert('Please upload a .pptx file')
-      return
+      toast.error('Please upload a .pptx file')
+      return   
     }
 
     setIsLoading(true)
     try {
-      const parser = new PPTXParser()
-      const parsedDocument = await parser.parseFile(file)
+      const parsedDocument = await PPTXApiService.parsePPTX(file)
       setDocument(parsedDocument)
+      toast.success('PPTX file parsed successfully!')
     } catch (error) {
       console.error('Error parsing file:', error)
-      alert('Error parsing PPTX file. Please try again.')
+      toast.error('Error parsing PPTX file. Please try again.')
     } finally {
       setIsLoading(false)
     }

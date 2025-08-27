@@ -15,6 +15,10 @@ interface EditorStore extends EditorState {
   setPan: (pan: Point) => void
   saveToHistory: () => void
   deleteSelectedObjects: () => void
+  
+  // Computed properties
+  canUndo: boolean
+  canRedo: boolean
 }
 
 export const useEditorStore = create<EditorStore>()(
@@ -25,14 +29,23 @@ export const useEditorStore = create<EditorStore>()(
       currentSlideIndex: 0,
       selectedObjects: [],
       zoom: 1,
-      pan: { x: 0, y: 0 },
+      pan: { x: 0, y: 0 },    
       history: {
         past: [],
         future: [],
       },
       isEditing: false,
-      gridSnap: true,
+      gridSnap: true, 
       objectSnap: true,
+
+      // Computed properties
+      get canUndo() {
+        return get().history.past.length > 0
+      },
+
+      get canRedo() {
+        return get().history.future.length > 0
+      },
 
       // Actions
       setDocument: (document) => {
@@ -70,7 +83,7 @@ export const useEditorStore = create<EditorStore>()(
           const newDocument = { ...document }
           const slide = newDocument.slides[get().currentSlideIndex]
           slide.objects.forEach(obj => {
-            if (objectIds.includes(obj.id)) {
+            if (objectIds.includes(obj.id) && obj.transform) {
               obj.transform.left += delta.x
               obj.transform.top += delta.y
             }
@@ -80,22 +93,36 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       resizeObject: (id, width, height) => {
-        get().updateObject(id, {
-          transform: {
-            ...get().document!.slides[get().currentSlideIndex].objects.find(obj => obj.id === id)!.transform,
-            width,
-            height,
+        const { document } = get()
+        if (document) {
+          const slide = document.slides[get().currentSlideIndex]
+          const obj = slide.objects.find(obj => obj.id === id)
+          if (obj && obj.transform) {
+            get().updateObject(id, {
+              transform: {
+                ...obj.transform,
+                width,
+                height,
+              }
+            })
           }
-        })
+        }
       },
 
       rotateObject: (id, angle) => {
-        get().updateObject(id, {
-          transform: {
-            ...get().document!.slides[get().currentSlideIndex].objects.find(obj => obj.id === id)!.transform,
-            angle,
+        const { document } = get()
+        if (document) {
+          const slide = document.slides[get().currentSlideIndex]
+          const obj = slide.objects.find(obj => obj.id === id)
+          if (obj && obj.transform) {
+            get().updateObject(id, {
+              transform: {
+                ...obj.transform,
+                angle,
+              }
+            })
           }
-        })
+        }
       },
 
       setZoom: (zoom) => {

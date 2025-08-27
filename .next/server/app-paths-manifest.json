@@ -1,3 +1,4 @@
 {
+  "/api/pptx/parse/route": "app/api/pptx/parse/route.js",
   "/page": "app/page.js"
 }

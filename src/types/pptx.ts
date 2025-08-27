@@ -33,13 +33,15 @@ export interface TextStyle {
 
 export interface ShapeObject {
   id: string
-  type: 'text' | 'image' | 'rectangle' | 'ellipse' | 'line' | 'group'
-  transform: Transform
-  style: Partial<TextStyle> | Record<string, any>
+  type: 'text' | 'image' | 'rectangle' | 'ellipse' | 'line' | 'group' | 'shape'
+  transform?: Transform // Optional since backend might not send it
+  style?: Partial<TextStyle> | Record<string, any>
   content?: string
+  text?: string // Backend sends text property
   src?: string
   children?: ShapeObject[]
   groupId?: string
+  rawData?: any // Backend sends raw XML data
 }
 
 export interface Slide {
@@ -48,6 +50,7 @@ export interface Slide {
   width: number
   height: number
   objects: ShapeObject[]
+  svgContent?: string // SVG representation of the slide for faithful rendering
   background?: string
 }
 

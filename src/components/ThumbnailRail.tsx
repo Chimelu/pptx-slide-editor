@@ -24,7 +24,7 @@ export function ThumbnailRail() {
         <h3 className="text-sm font-medium text-gray-900">Slides</h3>
         <button
           onClick={handleAddSlide}
-          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+          className="text-primary-600 hover:text-primary-700 text-sm font-medium"    
         >
           + Add
         </button>
