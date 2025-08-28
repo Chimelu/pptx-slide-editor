@@ -1,6 +1,7 @@
 {
-  "name": "pptx-editor",
-  "version": "0.1.0",
+  "name": "pptx-parser",
+  "version": "1.0.0",
+  "description": "Advanced PowerPoint presentation parser with auto-scrolling navigation and text editing capabilities",
   "private": true,
   "scripts": {
     "dev": "next dev",
