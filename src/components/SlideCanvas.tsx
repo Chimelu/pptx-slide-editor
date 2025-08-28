@@ -231,7 +231,7 @@ export function SlideCanvas() {
   }, [])
 
   // Create Fabric.js objects function
-  const createFabricObject = useCallback((obj: any) => {
+  const createFabricObject = useCallback(async (obj: any): Promise<fabric.Object | null> => {
     try {
       console.log('Creating Fabric.js object for:', obj)
       
@@ -263,22 +263,35 @@ export function SlideCanvas() {
 
       switch (actualType) {
         case 'text':
+          const textStyle = obj.style || {}
           return new fabric.Text(obj.text || 'Text', {
             ...commonProps,
-            fontSize: 16,
-            fill: '#000000',
-            fontFamily: 'Arial, sans-serif',
+            fontSize: textStyle.fontSize || 16,
+            fill: textStyle.color || '#000000',
+            fontFamily: textStyle.fontFamily || 'Arial, sans-serif',
+            textAlign: textStyle.textAlign || 'left',
             originX: 'left',
             originY: 'top',
           })
 
         case 'image':
           if (obj.src) {
-            console.log('Creating image object with src:', obj.src)
-            return new fabric.Image(obj.src, {
-              ...commonProps,
-              originX: 'left',
-              originY: 'top',
+            console.log('🔍 Creating image object with src:', obj.src)
+            console.log('🔍 Image src type:', typeof obj.src)
+            console.log('🔍 Image src length:', obj.src.length)
+            
+            // Use fabric.Image.fromURL for proper image loading
+            return new Promise<fabric.Image>((resolve) => {
+              console.log('🔍 Starting image loading with fabric.Image.fromURL')
+              fabric.Image.fromURL(obj.src, (img: fabric.Image) => {
+                console.log('✅ Image loaded successfully:', img)
+                img.set({
+                  ...commonProps,
+                  originX: 'left',
+                  originY: 'top',
+                })
+                resolve(img)
+              }, { crossOrigin: 'anonymous' })
             })
           }
           // Fallback for images without src
@@ -323,16 +336,23 @@ export function SlideCanvas() {
 
         case 'group':
           if (obj.children && obj.children.length > 0) {
-            const groupObjects = obj.children
-              .map((child: any) => createFabricObject(child))
-              .filter(Boolean)
-            
-            if (groupObjects.length > 0) {
-              return new fabric.Group(groupObjects, {
-                ...commonProps,
-                originX: 'left',
-                originY: 'top',
-              })
+            try {
+              const groupObjectsPromises = obj.children
+                .map((child: any) => createFabricObject(child))
+                .filter(Boolean)
+              
+              const groupObjects = await Promise.all(groupObjectsPromises)
+              const validObjects = groupObjects.filter(Boolean)
+              
+              if (validObjects.length > 0) {
+                return new fabric.Group(validObjects, {
+                  ...commonProps,
+                  originX: 'left',
+                  originY: 'top',
+                })
+              }
+            } catch (error) {
+              console.error('Error creating group objects:', error)
             }
           }
           // Fallback for empty groups
@@ -349,11 +369,13 @@ export function SlideCanvas() {
           // Handle generic shapes - if they have text, treat as text; otherwise as rectangle
           if (obj.text && obj.text.trim()) {
             console.log('Creating text object from generic shape:', obj.text)
+            const textStyle = obj.style || {}
             return new fabric.Text(obj.text, {
               ...commonProps,
-              fontSize: 16,
-              fill: '#000000',
-              fontFamily: 'Arial, sans-serif',
+              fontSize: textStyle.fontSize || 16,
+              fill: textStyle.color || '#000000',
+              fontFamily: textStyle.fontFamily || 'Arial, sans-serif',
+              textAlign: textStyle.textAlign || 'left',
               originX: 'left',
               originY: 'top',
             })
@@ -469,32 +491,39 @@ export function SlideCanvas() {
     })
 
     // Render editable objects as overlays
-    sortedObjects.forEach((obj, index) => {
-      console.log(`Creating editable overlay object ${index + 1}:`, obj)
-      const fabricObject = createFabricObject(obj)
-      if (fabricObject) {
-        // Set the object's z-index to maintain proper layering
-        fabricObject.set('zIndex', index + 1000) // Higher than SVG background
+    const renderObjects = async () => {
+      for (let index = 0; index < sortedObjects.length; index++) {
+        const obj = sortedObjects[index]
+        console.log(`Creating editable overlay object ${index + 1}:`, obj)
         
-        // Ensure objects are properly positioned within canvas bounds
-        const objLeft = fabricObject.left || 0
-        const objTop = fabricObject.top || 0
-        const objWidth = fabricObject.width || 0
-        const objHeight = fabricObject.height || 0
-        
-        // Adjust position if object is outside canvas bounds
-        if (objLeft < 0) fabricObject.set('left', 0)
-        if (objTop < 0) fabricObject.set('top', 0)
-        if (objLeft + objWidth > canvasWidth) fabricObject.set('left', Math.max(0, canvasWidth - objWidth))
-        if (objTop + objHeight > canvasHeight) fabricObject.set('top', Math.max(0, canvasHeight - objHeight))
-        
-        // Add object to canvas
-        fabricRef.current!.add(fabricObject)
-        console.log(`Added editable object ${index + 1} to canvas:`, fabricObject)
-      } else {
-        console.warn(`Failed to create editable object for:`, obj)
+        try {
+          const fabricObject = await createFabricObject(obj)
+          if (fabricObject) {
+            // Ensure objects are properly positioned within canvas bounds
+            const objLeft = fabricObject.left || 0
+            const objTop = fabricObject.top || 0
+            const objWidth = fabricObject.width || 0
+            const objHeight = fabricObject.height || 0
+            
+            // Adjust position if object is outside canvas bounds
+            if (objLeft < 0) fabricObject.set('left', 0)
+            if (objTop < 0) fabricObject.set('top', 0)
+            if (objLeft + objWidth > canvasWidth) fabricObject.set('left', Math.max(0, canvasWidth - objWidth))
+            if (objTop + objHeight > canvasHeight) fabricObject.set('top', Math.max(0, canvasHeight - objHeight))
+            
+            // Add object to canvas
+            fabricRef.current!.add(fabricObject)
+            console.log(`Added editable object ${index + 1} to canvas:`, fabricObject)
+          } else {
+            console.warn(`Failed to create editable object for:`, obj)
+          }
+        } catch (error) {
+          console.error(`Error creating object ${index + 1}:`, error)
+        }
       }
-    })
+    }
+    
+    renderObjects()
 
     // Ensure proper object stacking order
     fabricRef.current.bringToFront()
