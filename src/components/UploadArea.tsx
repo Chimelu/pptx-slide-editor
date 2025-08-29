@@ -79,7 +79,13 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg shadow-lg border-2 border-dashed border-gray-300 p-6 sm:p-8 text-center">
+        <div 
+          className="bg-white rounded-lg shadow-lg border-2 border-dashed border-gray-300 p-6 sm:p-8 text-center cursor-pointer hover:border-primary-400 hover:shadow-xl transition-all duration-200 hover:bg-gray-50"
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <div className="mb-4 sm:mb-6">
             <div className="mx-auto w-16 sm:w-20 h-16 sm:h-20 bg-primary-100 rounded-full flex items-center justify-center">
               <Upload className="w-8 sm:w-10 h-8 sm:h-10 text-primary-600" />
@@ -91,20 +97,25 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
           </h3>
           
           <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-            Drag and drop your .pptx file here, or click to browse
+            Click anywhere in this area or drag and drop your .pptx file here
           </p>
           
           <div className="space-y-2 sm:space-y-3">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+              className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-primary-600 hover:bg-primary-700 text-white text-base sm:text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95"
             >
-              Choose File
+              📁 Choose File to Upload
             </button>
             
-                         <p className="text-xs sm:text-sm text-gray-500">
-               Supports .pptx files up to 4MB
-             </p>
+            <div className="text-center">
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">
+                or drag and drop your file here
+              </p>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Supports .pptx files up to 4MB
+              </p>
+            </div>
           </div>
           
           <input
