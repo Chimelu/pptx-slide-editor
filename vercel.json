@@ -12,5 +12,16 @@
     "env": {
       "NODE_OPTIONS": "--max-old-space-size=2048"
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/pptx/parse",
+      "dest": "/api/pptx/parse",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
+    }
+  ]
 }

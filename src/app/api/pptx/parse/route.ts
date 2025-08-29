@@ -6,6 +6,19 @@ import pathPosix from 'node:path/posix'
 
 export const runtime = 'nodejs' // ensure Node runtime for Buffer/form-data
 
+// Handle OPTIONS request for CORS
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+    },
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Starting PPTX parsing...')
@@ -28,12 +41,22 @@ export async function POST(request: NextRequest) {
 
     console.log('📁 Processing file:', file.name, 'Size:', file.size, 'bytes')
 
-    // Check file size limit for Vercel (reduced to 1MB for Hobby plan safety)
-    if (file.size > 1 * 1024 * 1024) { // 1MB limit
+    // Check file size limit for Vercel (increased to 4MB for better compatibility)
+    if (file.size > 4 * 1024 * 1024) { // 4MB limit
       console.log('❌ File too large:', file.size)
       return NextResponse.json({ 
-        error: 'File too large. Maximum size is 1MB for Vercel Hobby plan.' 
-      }, { status: 400 })
+        error: 'File too large. Maximum size is 4MB for Vercel deployment.',
+        details: `Your file is ${Math.round(file.size / 1024 / 1024 * 100) / 100}MB, limit is 4MB`,
+        fileSize: file.size,
+        maxSize: 4 * 1024 * 1024
+      }, { 
+        status: 413,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      })
     }
 
     const arrayBuffer = await file.arrayBuffer()
@@ -70,33 +93,53 @@ export async function POST(request: NextRequest) {
       heapTotal: Math.round(finalMemUsage.heapTotal / 1024 / 1024) + 'MB'
     })
     
-    return NextResponse.json(presentation)
+    return NextResponse.json(presentation, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    })
   } catch (error) {
     console.error('❌ Error parsing PPTX file:', error)
     
-          // Provide more specific error messages
-      if (error instanceof Error) {
-        const errorResponse: any = {
-          error: 'Failed to parse PPTX file',
-          details: error.message,
-          timestamp: new Date().toISOString(),
-          environment: process.env.NODE_ENV,
-          runtime: process.env.NEXT_RUNTIME || 'unknown'
-        }
-        
-        // Add stack trace in development
-        if (process.env.NODE_ENV === 'development') {
-          errorResponse.stack = error.stack
-        }
-        
-        console.error('❌ Detailed error response:', errorResponse)
-        return NextResponse.json(errorResponse, { status: 500 })
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      const errorResponse: any = {
+        error: 'Failed to parse PPTX file',
+        details: error.message,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        runtime: process.env.NEXT_RUNTIME || 'unknown'
       }
+      
+      // Add stack trace in development
+      if (process.env.NODE_ENV === 'development') {
+        errorResponse.stack = error.stack
+      }
+      
+      console.error('❌ Detailed error response:', errorResponse)
+      return NextResponse.json(errorResponse, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      })
+    }
     
     return NextResponse.json({ 
       error: 'Failed to parse PPTX file',
       timestamp: new Date().toISOString()
-    }, { status: 500 })
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    })
   }
 }
 
@@ -113,8 +156,8 @@ class PPTXService {
       }
       
       // Check if buffer is too large for serverless
-      if (buffer.length > 1 * 1024 * 1024) { // 1MB
-        throw new Error(`Buffer too large: ${buffer.length} bytes (max: 1MB)`)
+      if (buffer.length > 4 * 1024 * 1024) { // 4MB
+        throw new Error(`Buffer too large: ${buffer.length} bytes (max: 4MB)`)
       }
       
       const zip = await JSZip.loadAsync(buffer)
