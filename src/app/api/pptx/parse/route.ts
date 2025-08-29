@@ -792,8 +792,52 @@ class PPTXService {
       const cx = parseInt(this.getAttribute(ext, 'cx') || '0')
       const cy = parseInt(this.getAttribute(ext, 'cy') || '0')
       
-      // Convert EMUs to pixels (1 inch = 914400 EMUs, assuming 96 DPI)
-      const emuToPixels = 96 / 914400
+      // Better EMU to pixel conversion (1 inch = 914400 EMUs, assuming 96 DPI)
+      // Use a more appropriate scaling factor for PPTX coordinates
+      const emuToPixels = 1 / 12700 // This gives better scaling for PPTX coordinates
+      
+      // Extract crop information if available
+      const blipFill = this.findBlipFillRecursively(shape)
+      let cropInfo = null
+      
+      if (blipFill) {
+        const srcRect = this.findElement(blipFill, 'a:srcRect')
+        if (srcRect) {
+          cropInfo = {
+            l: parseInt(this.getAttribute(srcRect, 'l') || '0') / 100000, // Left crop (0-1)
+            t: parseInt(this.getAttribute(srcRect, 't') || '0') / 100000, // Top crop (0-1)
+            r: parseInt(this.getAttribute(srcRect, 'r') || '0') / 100000, // Right crop (0-1)
+            b: parseInt(this.getAttribute(srcRect, 'b') || '0') / 100000, // Bottom crop (0-1)
+          }
+          console.log('🔍 Found crop information:', cropInfo)
+        }
+      }
+      
+      // Extract stretch/fit mode
+      let fitMode = 'stretch' // default
+      if (blipFill) {
+        const stretch = this.findElement(blipFill, 'a:stretch')
+        if (stretch) {
+          fitMode = 'stretch'
+        } else {
+          // Check for tile or other modes
+          const tile = this.findElement(blipFill, 'a:tile')
+          if (tile) {
+            fitMode = 'tile'
+          }
+        }
+      }
+      
+      // Extract rotation if available
+      let rotation = 0
+      if (xfrm) {
+        const rot = this.findElement(xfrm, 'a:rot')
+        if (rot) {
+          // Convert from 60,000ths of a degree to degrees
+          rotation = parseInt(this.getAttribute(rot, 'val') || '0') / 60000
+          console.log('🔍 Found rotation:', rotation, 'degrees')
+        }
+      }
       
       const position = {
         left: Math.round(x * emuToPixels),
@@ -801,10 +845,19 @@ class PPTXService {
         width: Math.round(cx * emuToPixels),
         height: Math.round(cy * emuToPixels),
         // Keep raw EMU values for reference
-        raw: { x, y, cx, cy }
+        raw: { x, y, cx, cy },
+        // Add crop and fit information
+        crop: cropInfo,
+        fitMode: fitMode,
+        // Calculate aspect ratio
+        aspectRatio: cx > 0 && cy > 0 ? cx / cy : 1,
+        // Add rotation
+        rotation: rotation
       }
       
       console.log(`🔍 Converted EMU to pixels:`, position)
+      console.log(`🔍 Crop info:`, cropInfo)
+      console.log(`🔍 Fit mode:`, fitMode)
       return position
       
     } catch (error) {
@@ -882,8 +935,9 @@ class PPTXService {
       const cx = parseInt(this.getAttribute(ext, 'cx') || '0')
       const cy = parseInt(this.getAttribute(ext, 'cy') || '0')
       
-      // Convert EMUs to pixels (1 inch = 914400 EMUs, assuming 96 DPI)
-      const emuToPixels = 96 / 914400
+      // Better EMU to pixel conversion (1 inch = 914400 EMUs, assuming 96 DPI)
+      // Use a more appropriate scaling factor for PPTX coordinates
+      const emuToPixels = 1 / 12700 // This gives better scaling for PPTX coordinates
       
       const position = {
         left: Math.round(x * emuToPixels),

@@ -230,6 +230,33 @@ export function SlideCanvas() {
     }
   }, [])
 
+  // Debug method for image objects
+  const debugImageObject = useCallback((obj: any) => {
+    console.log('🔍 === IMAGE DEBUG INFO ===')
+    console.log('🔍 Object type:', obj.type)
+    console.log('🔍 Object ID:', obj.id)
+    console.log('🔍 Object name:', obj.name)
+    console.log('🔍 Has src:', !!obj.src)
+    console.log('🔍 Src length:', obj.src?.length || 0)
+    console.log('🔍 Position data:', obj.position)
+    
+    if (obj.position) {
+      console.log('🔍 Position details:')
+      console.log('  - Left:', obj.position.left)
+      console.log('  - Top:', obj.position.top)
+      console.log('  - Width:', obj.position.width)
+      console.log('  - Height:', obj.position.height)
+      console.log('  - Rotation:', obj.position.rotation)
+      console.log('  - Aspect ratio:', obj.position.aspectRatio)
+      console.log('  - Fit mode:', obj.position.fitMode)
+      console.log('  - Crop info:', obj.position.crop)
+      console.log('  - Raw EMU values:', obj.position.raw)
+    }
+    
+    console.log('🔍 Raw data keys:', Object.keys(obj.rawData || {}))
+    console.log('🔍 === END IMAGE DEBUG ===')
+  }, [])
+
   // Create Fabric.js objects function
   const createFabricObject = useCallback(async (obj: any): Promise<fabric.Object | null> => {
     try {
@@ -275,8 +302,12 @@ export function SlideCanvas() {
           })
 
         case 'image':
+          // Debug image object for troubleshooting
+          debugImageObject(obj)
+          
           if (obj.src) {
             console.log('🔍 Creating image object with src:', obj.src)
+            console.log('🔍 Image position data:', obj.position)
             console.log('🔍 Image src type:', typeof obj.src)
             console.log('🔍 Image src length:', obj.src.length)
             
@@ -285,11 +316,83 @@ export function SlideCanvas() {
               console.log('🔍 Starting image loading with fabric.Image.fromURL')
               fabric.Image.fromURL(obj.src, (img: fabric.Image) => {
                 console.log('✅ Image loaded successfully:', img)
+                
+                // Get the original image dimensions
+                const originalWidth = img.width || 0
+                const originalHeight = img.height || 0
+                console.log('🔍 Original image dimensions:', originalWidth, 'x', originalHeight)
+                
+                // Apply positioning and sizing from PPTX
+                const position = obj.position || {}
+                const left = position.left || 0
+                const top = position.top || 0
+                const width = position.width || originalWidth
+                const height = position.height || originalHeight
+                
+                // Handle cropping if available
+                let finalWidth = width
+                let finalHeight = height
+                let finalLeft = left
+                let finalTop = top
+                
+                if (position.crop) {
+                  const crop = position.crop
+                  console.log('🔍 Applying crop:', crop)
+                  
+                  // Calculate crop dimensions
+                  const cropWidth = originalWidth * (1 - crop.l - crop.r)
+                  const cropHeight = originalHeight * (1 - crop.t - crop.b)
+                  
+                  // Adjust position and size based on crop
+                  finalWidth = cropWidth
+                  finalHeight = cropHeight
+                  finalLeft = left + (crop.l * width)
+                  finalTop = top + (crop.t * height)
+                  
+                  console.log('🔍 After crop - Width:', finalWidth, 'Height:', finalHeight)
+                  console.log('🔍 After crop - Left:', finalLeft, 'Top:', finalTop)
+                }
+                
+                // Preserve aspect ratio if needed
+                if (position.fitMode === 'stretch' && position.aspectRatio) {
+                  const targetAspectRatio = position.aspectRatio
+                  const currentAspectRatio = finalWidth / finalHeight
+                  
+                  if (Math.abs(currentAspectRatio - targetAspectRatio) > 0.1) {
+                    // Adjust to match target aspect ratio
+                    if (currentAspectRatio > targetAspectRatio) {
+                      // Too wide, adjust height
+                      finalHeight = finalWidth / targetAspectRatio
+                    } else {
+                      // Too tall, adjust width
+                      finalWidth = finalHeight * targetAspectRatio
+                    }
+                    console.log('🔍 Adjusted for aspect ratio:', finalWidth, 'x', finalHeight)
+                  }
+                }
+                
+                // Set the image properties
                 img.set({
-                  ...commonProps,
+                  left: finalLeft,
+                  top: finalTop,
+                  width: finalWidth,
+                  height: finalHeight,
+                  angle: position.rotation || 0, // Apply rotation if present
                   originX: 'left',
                   originY: 'top',
+                  selectable: true,
+                  evented: true,
+                  // Store original data for reference
+                  data: obj,
                 })
+                
+                console.log('🔍 Final image properties:', {
+                  left: finalLeft,
+                  top: finalTop,
+                  width: finalWidth,
+                  height: finalHeight
+                })
+                
                 resolve(img)
               }, { crossOrigin: 'anonymous' })
             })
