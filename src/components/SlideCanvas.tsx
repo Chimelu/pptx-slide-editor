@@ -653,6 +653,8 @@ export function SlideCanvas() {
     }
   }, [zoom, pan])
 
+
+
   const handleSelection = useCallback(() => {
     if (!fabricRef.current) return
     
@@ -729,7 +731,7 @@ export function SlideCanvas() {
     const textObject = e.target
     if (textObject && textObject.data?.id) {
       updateObject(textObject.data.id, {
-        content: textObject.text,
+        text: textObject.text,
       })
     }
   }, [updateObject])
@@ -741,7 +743,7 @@ export function SlideCanvas() {
     if (textObject && textObject.data?.id) {
       // Save the final text content
       updateObject(textObject.data.id, {
-        content: textObject.text,
+        text: textObject.text,
       })
       saveToHistory()
     }
@@ -802,6 +804,36 @@ export function SlideCanvas() {
   const slide = document.slides[currentSlideIndex]
   if (!slide) return null
 
+  // Auto-center slide content when canvas loads
+  const centerSlideContent = useCallback(() => {
+    if (!fabricRef.current || !slide) return
+    
+    const canvas = fabricRef.current
+    const canvasWidth = canvas.getWidth()
+    const canvasHeight = canvas.getHeight()
+    
+    // Calculate center position
+    const centerX = (canvasWidth - slide.width) / 2
+    const centerY = (canvasHeight - slide.height) / 2
+    
+    // Set pan to center the slide
+    setPan({ x: centerX, y: centerY })
+    
+    // Also center the canvas viewport
+    canvas.setViewportTransform([1, 0, 0, 1, centerX, centerY])
+    
+    console.log('🎯 Centered slide content:', { centerX, centerY, slideWidth: slide.width, slideHeight: slide.height })
+  }, [slide, setPan])
+
+  // Center content when slide changes or canvas loads
+  useEffect(() => {
+    if (isFabricLoaded && slide) {
+      // Small delay to ensure canvas is ready
+      const timer = setTimeout(centerSlideContent, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isFabricLoaded, slide, centerSlideContent])
+
   // Show loading state while Fabric.js loads
   if (!isFabricLoaded) {
     return (
@@ -818,24 +850,63 @@ export function SlideCanvas() {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-100 overflow-hidden">
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-gray-300">
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-gray-300 w-full max-w-full">
           <canvas
             ref={canvasRef}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onWheel={handleWheel}
-            className="block border border-gray-200"
-            style={{ minWidth: '800px', minHeight: '600px' }}
+            onTouchStart={(e) => {
+              // Handle touch events for mobile
+              if (e.touches.length === 1) {
+                const touch = e.touches[0]
+                const mouseEvent = new MouseEvent('mousedown', {
+                  clientX: touch.clientX,
+                  clientY: touch.clientY,
+                  button: 0
+                })
+                handleMouseDown(mouseEvent as any)
+              }
+            }}
+            onTouchMove={(e) => {
+              // Handle touch move for mobile panning
+              if (e.touches.length === 1) {
+                e.preventDefault()
+                const touch = e.touches[0]
+                const mouseEvent = new MouseEvent('mousemove', {
+                  clientX: touch.clientX,
+                  clientY: touch.clientY,
+                  movementX: touch.clientX - (e.target as any).lastTouchX || 0,
+                  movementY: touch.clientY - (e.target as any).lastTouchY || 0
+                })
+                ;(e.target as any).lastTouchX = touch.clientX
+                ;(e.target as any).lastTouchY = touch.clientY
+                handleMouseMove(mouseEvent as any)
+              }
+            }}
+            onTouchEnd={handleMouseUp}
+            className="block border border-gray-200 w-full h-auto"
+            style={{ 
+              width: '100%',
+              height: 'auto',
+              maxWidth: '100vw',
+              maxHeight: '70vh',
+              aspectRatio: `${slide.width} / ${slide.height}`
+            }}
           />
         </div>
       </div>
       
-      <div className="bg-white border-t border-gray-200 px-4 py-2 text-sm text-gray-600">
-        Slide {currentSlideIndex + 1} of {document.slides.length} • 
-        {slide.width} × {slide.height} • 
-        {slide.objects.length} objects
+      <div className="bg-white border-t border-gray-200 px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+          <span>Slide {currentSlideIndex + 1} of {document.slides.length}</span>
+          <span className="hidden sm:inline">•</span>
+          <span>{slide.width} × {slide.height}</span>
+          <span className="hidden sm:inline">•</span>
+          <span>{slide.objects.length} objects</span>
+        </div>
       </div>
     </div>
   )

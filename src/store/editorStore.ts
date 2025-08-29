@@ -71,7 +71,12 @@ export const useEditorStore = create<EditorStore>()(
           const slide = newDocument.slides[get().currentSlideIndex]
           const objectIndex = slide.objects.findIndex(obj => obj.id === id)
           if (objectIndex !== -1) {
-            slide.objects[objectIndex] = { ...slide.objects[objectIndex], ...updates }
+            const currentObject = slide.objects[objectIndex]
+            // Use type assertion to maintain the original object type while allowing safe updates
+            slide.objects[objectIndex] = {
+              ...currentObject,
+              ...updates
+            } as typeof currentObject
             set({ document: newDocument })
           }
         }

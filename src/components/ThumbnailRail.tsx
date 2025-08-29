@@ -75,36 +75,36 @@ export function ThumbnailRail() {
   }, [])
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto" ref={containerRef}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-900">Slides</h3>
-        <button
-          onClick={handleAddSlide}
-          className="text-primary-600 hover:text-primary-700 text-sm font-medium"    
-        >
-          + Add
-        </button>
-      </div>
-      
-      <div className="space-y-3">
-        {document.slides.map((slide, index) => (
-          <SlideThumbnail
-            key={slide.id}
-            slide={slide}
-            index={index}
-            isActive={index === currentSlideIndex}
-            onClick={() => handleSlideClick(index)}
-            ref={(el) => {
-              if (el) {
-                console.log(`🔄 Setting ref for slide ${index}:`, el)
-                thumbnailRefs.current[index] = el
-              } else {
-                console.log(`🔄 Clearing ref for slide ${index}`)
-                thumbnailRefs.current[index] = null
-              }
-            }}
-          />
-        ))}
+    <div className="w-full sm:w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="p-3 sm:p-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Slides</h2>
+        <div className="space-y-2 sm:space-y-3">
+          {document.slides.map((slide, index) => (
+            <div
+              key={index}
+              onClick={() => handleSlideClick(index)}
+              className={`
+                cursor-pointer rounded-lg border-2 transition-all duration-200 hover:shadow-md
+                ${index === currentSlideIndex 
+                  ? 'border-primary-500 bg-primary-50 shadow-md' 
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                }
+              `}
+            >
+              <div className="p-2 sm:p-3">
+                <div className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  Slide {index + 1}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {slide.objects.length} object{slide.objects.length !== 1 ? 's' : ''}
+                </div>
+                <div className="mt-2 text-xs text-gray-400">
+                  {slide.width} × {slide.height}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

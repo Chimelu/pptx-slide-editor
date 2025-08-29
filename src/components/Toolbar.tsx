@@ -49,47 +49,45 @@ export function Toolbar() {
   }
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center space-x-2">
-        <h1 className="text-lg font-semibold text-gray-900">
-          {document?.name || 'PPTX Editor'}
-        </h1>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <button
-          onClick={handleUndo}
-          disabled={!canUndo}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Undo"
-        >
-          <Undo2 size={20} />
-        </button>
+    <div className="bg-white border-b border-gray-200 px-2 sm:px-4 py-2 sm:py-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            onClick={handleUndo}
+            disabled={!canUndo}
+            className={`
+              px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors
+              ${canUndo 
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
+            Undo
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={!canRedo}
+            className={`
+              px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors
+              ${canRedo 
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
+            Redo
+          </button>
+        </div>
         
-        <button
-          onClick={handleRedo}
-          disabled={!canRedo}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Redo"
-        >
-          <Redo2 size={20} />
-        </button>
-        
-        <button
-          onClick={handleDelete}
-          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md"
-          title="Delete Selected"
-        >
-          <Trash2 size={20} />
-        </button>
-        
-        <button
-          onClick={handleExportPPTX}
-          className="inline-flex items-center px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          <Download size={16} className="mr-2" />
-          Export
-        </button>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            onClick={handleExportPPTX}
+            className="px-3 sm:px-4 py-1 sm:py-2 bg-primary-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
+          >
+            Export PPTX
+          </button>
+        </div>
       </div>
     </div>
   )

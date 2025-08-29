@@ -61,9 +61,9 @@ export function PPTXEditor() {
 
   if (!document) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center w-full max-w-md">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
             PPTX Slide Editor
           </h1>
           <UploadArea onFileUpload={handleFileUpload} isLoading={isLoading} />
@@ -73,11 +73,16 @@ export function PPTXEditor() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col lg:flex-row bg-gray-100">
       <Toolbar />
-      <div className="flex-1 flex">
-        <ThumbnailRail />
-        <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex flex-col lg:flex-row">
+        {/* Thumbnail Rail - Full width on mobile, sidebar on desktop */}
+        <div className="order-2 lg:order-1">
+          <ThumbnailRail />
+        </div>
+        
+        {/* Main Content Area */}
+        <div className="flex-1 flex items-center justify-center p-2 sm:p-4 order-1 lg:order-2">
           <SlideCanvas />
         </div>
       </div>

@@ -77,71 +77,62 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
   }
 
   return (
-    <div className="w-full max-w-2xl">
-      <div
-        className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors duration-200
-          ${isDragOver 
-            ? 'border-primary-500 bg-primary-50' 
-            : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-          }
-        `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pptx"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-        
-        <div className="flex flex-col items-center">
-          {isLoading ? (
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-          ) : (
-            <Upload className="h-12 w-12 text-gray-400 mb-4" />
-          )}
+    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-lg shadow-lg border-2 border-dashed border-gray-300 p-6 sm:p-8 text-center">
+          <div className="mb-4 sm:mb-6">
+            <div className="mx-auto w-16 sm:w-20 h-16 sm:h-20 bg-primary-100 rounded-full flex items-center justify-center">
+              <Upload className="w-8 sm:w-10 h-8 sm:h-10 text-primary-600" />
+            </div>
+          </div>
           
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {isLoading ? 'Processing...' : 'Upload PowerPoint Presentation'}
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">
+            Upload PowerPoint Presentation
           </h3>
           
-          <p className="text-sm text-gray-500 mb-4">
-            Drag and drop a .pptx file here, or click to browse
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+            Drag and drop your .pptx file here, or click to browse
           </p>
           
-          <div className="flex items-center text-xs text-gray-400 mb-4">
-            <FileText className="h-4 w-4 mr-1" />
-            Supports .pptx files only
+          <div className="space-y-2 sm:space-y-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+            >
+              Choose File
+            </button>
+            
+            <p className="text-xs sm:text-sm text-gray-500">
+              Supports .pptx files up to 50MB
+            </p>
           </div>
-
-          {/* File size limit info */}
-          <div className="text-xs text-gray-500 bg-gray-100 px-3 py-2 rounded">
-            Maximum file size: <strong>4MB</strong>
-          </div>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pptx"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </div>
+        
+        {/* Selected file info */}
+        {selectedFile && (
+          <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+            <h4 className="font-medium text-gray-900 mb-2">Selected File:</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                <span className="text-sm text-gray-700">{selectedFile.name}</span>
+              </div>
+              <div className={`text-sm font-medium ${getFileSizeColor(selectedFile.size)}`}>
+                {(selectedFile.size / (1024 * 1024)).toFixed(1)}MB
+              </div>
+            </div>
+            {getFileSizeWarning(selectedFile.size)}
+          </div>
+        )}
       </div>
-
-      {/* Selected file info */}
-      {selectedFile && (
-        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-          <h4 className="font-medium text-gray-900 mb-2">Selected File:</h4>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <FileText className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-700">{selectedFile.name}</span>
-            </div>
-            <div className={`text-sm font-medium ${getFileSizeColor(selectedFile.size)}`}>
-              {(selectedFile.size / (1024 * 1024)).toFixed(1)}MB
-            </div>
-          </div>
-          {getFileSizeWarning(selectedFile.size)}
-        </div>
-      )}
     </div>
   )
 }
