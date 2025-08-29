@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
 
     console.log('📁 Processing file:', file.name, 'Size:', file.size, 'bytes')
 
-    // Check file size limit for Vercel (reduced to 2MB for safety)
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+    // Check file size limit for Vercel (reduced to 1MB for Hobby plan safety)
+    if (file.size > 1 * 1024 * 1024) { // 1MB limit
       console.log('❌ File too large:', file.size)
       return NextResponse.json({ 
-        error: 'File too large. Maximum size is 2MB for Vercel deployment.' 
+        error: 'File too large. Maximum size is 1MB for Vercel Hobby plan.' 
       }, { status: 400 })
     }
 
@@ -113,8 +113,8 @@ class PPTXService {
       }
       
       // Check if buffer is too large for serverless
-      if (buffer.length > 2 * 1024 * 1024) { // 2MB
-        throw new Error(`Buffer too large: ${buffer.length} bytes (max: 2MB)`)
+      if (buffer.length > 1 * 1024 * 1024) { // 1MB
+        throw new Error(`Buffer too large: ${buffer.length} bytes (max: 1MB)`)
       }
       
       const zip = await JSZip.loadAsync(buffer)
