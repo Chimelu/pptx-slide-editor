@@ -20,6 +20,13 @@ export function PPTXEditor() {
       return   
     }
 
+    // Check file size before uploading
+    const fileSizeMB = file.size / (1024 * 1024)
+    if (fileSizeMB > 4) {
+      toast.error(`File too large: ${fileSizeMB.toFixed(1)}MB. Maximum size is 4MB.`)
+      return
+    }
+
     setIsLoading(true)
     try {
       const parsedDocument = await PPTXApiService.parsePPTX(file)
@@ -27,7 +34,26 @@ export function PPTXEditor() {
       toast.success('PPTX file parsed successfully!')
     } catch (error) {
       console.error('Error parsing file:', error)
-      toast.error('Error parsing PPTX file. Please try again.')
+      
+      // Extract detailed error message from API response
+      let errorMessage = 'Error parsing PPTX file. Please try again.'
+      
+      if (error instanceof Error) {
+        // Try to parse the error message for more details
+        if (error.message.includes('Failed to parse PPTX')) {
+          errorMessage = error.message
+        } else if (error.message.includes('File too large')) {
+          errorMessage = error.message
+        } else if (error.message.includes('413')) {
+          errorMessage = 'File too large for processing. Maximum size is 4MB.'
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Service temporarily unavailable. Please try again.'
+        } else {
+          errorMessage = `Error: ${error.message}`
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }

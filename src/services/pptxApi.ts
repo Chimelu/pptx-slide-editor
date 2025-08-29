@@ -13,7 +13,32 @@ export class PPTXApiService {
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to parse PPTX: ${response.statusText}`)
+      // Try to get detailed error message from response
+      let errorMessage = `Failed to parse PPTX: ${response.statusText}`
+      
+      try {
+        const errorData = await response.json()
+        if (errorData.error) {
+          errorMessage = errorData.error
+          if (errorData.details) {
+            errorMessage += ` - ${errorData.details}`
+          }
+        }
+      } catch (e) {
+        // If we can't parse the error response, use the status text
+        console.warn('Could not parse error response:', e)
+      }
+
+      // Create a more descriptive error based on status code
+      if (response.status === 413) {
+        errorMessage = 'File too large for processing. Maximum size is 4MB.'
+      } else if (response.status === 404) {
+        errorMessage = 'Service temporarily unavailable. Please try again.'
+      } else if (response.status === 400) {
+        errorMessage = 'Invalid file format or request. Please check your file.'
+      }
+
+      throw new Error(errorMessage)
     }
 
     return response.json()
