@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "src/app/api/pptx/parse/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "env": {
+    "NODE_OPTIONS": "--max-old-space-size=3008"
+  }
+}

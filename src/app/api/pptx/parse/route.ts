@@ -8,8 +8,11 @@ export const runtime = 'nodejs' // ensure Node runtime for Buffer/form-data
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Starting PPTX parsing...')
+    
     const contentType = request.headers.get('content-type') || ''
     if (!contentType.includes('multipart/form-data')) {
+      console.log('❌ Invalid content type:', contentType)
       return NextResponse.json({ error: 'Send multipart/form-data with field "file"' }, { status: 400 })
     }
 
@@ -17,13 +20,22 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File | null
 
     if (!file) {
+      console.log('❌ No file provided')
       return NextResponse.json({ error: 'No file provided (expect field "file")' }, { status: 400 })
     }
 
-    console.log('📁 Processing file:', file.name)
+    console.log('📁 Processing file:', file.name, 'Size:', file.size, 'bytes')
+
+    // Check file size limit for Vercel
+    if (file.size > 4 * 1024 * 1024) { // 4MB limit
+      console.log('❌ File too large:', file.size)
+      return NextResponse.json({ error: 'File too large. Maximum size is 4MB.' }, { status: 400 })
+    }
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+
+    console.log('📦 Buffer created, size:', buffer.length)
 
     const pptxService = new PPTXService()
     const presentation = await pptxService.parsePPTX(buffer)
@@ -32,6 +44,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(presentation)
   } catch (error) {
     console.error('❌ Error parsing PPTX file:', error)
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      return NextResponse.json({ 
+        error: 'Failed to parse PPTX file', 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }, { status: 500 })
+    }
+    
     return NextResponse.json({ error: 'Failed to parse PPTX file' }, { status: 500 })
   }
 }
@@ -41,11 +63,14 @@ class PPTXService {
 
   async parsePPTX(buffer: Buffer): Promise<any> {
     try {
+      console.log('🔍 Starting PPTX parsing with buffer size:', buffer.length)
+      
       const zip = await JSZip.loadAsync(buffer)
+      console.log('📦 JSZip loaded successfully')
 
       // Debug inventory
       const fileNames = Object.keys(zip.files)
-      console.log('🔍 PPTX zip contents:')
+      console.log('🔍 PPTX zip contents count:', fileNames.length)
       for (const fileName of fileNames) {
         if (fileName.startsWith('ppt/media/')) console.log(`🖼️  media: ${fileName}`)
         else if (fileName.includes('/_rels/') && fileName.endsWith('.rels')) console.log(`🔗 rels: ${fileName}`)
@@ -53,7 +78,10 @@ class PPTXService {
       }
 
       const slides = await this.readSlides(zip)
+      console.log('📊 Slides parsed:', slides.length)
+      
       const properties = await this.readPresentationProps(zip)
+      console.log('📋 Properties parsed')
 
       const presentation = {
         id: this.generateId(),
@@ -63,9 +91,14 @@ class PPTXService {
       }
 
       this.parsedPresentations.set(presentation.id, presentation)
+      console.log('✅ Presentation object created successfully')
       return presentation
     } catch (error) {
-      console.error('❌ Error parsing PPTX file:', error)
+      console.error('❌ Error in parsePPTX:', error)
+      if (error instanceof Error) {
+        console.error('❌ Error details:', error.message)
+        console.error('❌ Error stack:', error.stack)
+      }
       throw error
     }
   }
@@ -545,18 +578,38 @@ class PPTXService {
 
   private async parseXML(xmlString: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      parseString(
-        xmlString,
-        {
-          explicitArray: false,
-          // preserve attributes in .$ and content in ._
-          attrkey: '$',
-          charkey: '_',
-          xmlns: false,
-          explicitRoot: true,
-        },
-        (err, result) => (err ? reject(err) : resolve(result))
-      )
+      try {
+        if (!xmlString || typeof xmlString !== 'string') {
+          reject(new Error('Invalid XML string provided'))
+          return
+        }
+        
+        console.log('🔍 Parsing XML, length:', xmlString.length)
+        
+        parseString(
+          xmlString,
+          {
+            explicitArray: false,
+            // preserve attributes in .$ and content in ._
+            attrkey: '$',
+            charkey: '_',
+            xmlns: false,
+            explicitRoot: true,
+          },
+          (err, result) => {
+            if (err) {
+              console.error('❌ XML parsing error:', err)
+              reject(err)
+            } else {
+              console.log('✅ XML parsed successfully')
+              resolve(result)
+            }
+          }
+        )
+      } catch (error) {
+        console.error('❌ Error in parseXML wrapper:', error)
+        reject(error)
+      }
     })
   }
 
