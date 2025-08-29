@@ -855,9 +855,15 @@ class PPTXService {
         rotation: rotation
       }
       
-      console.log(`🔍 Converted EMU to pixels:`, position)
+      console.log(`🔍 === IMAGE POSITION DEBUG ===`)
+      console.log(`🔍 Raw EMU values: x=${x}, y=${y}, cx=${cx}, cy=${cy}`)
+      console.log(`🔍 EMU to pixel conversion factor: ${emuToPixels}`)
+      console.log(`🔍 Calculated pixels: left=${position.left}, top=${position.top}, width=${position.width}, height=${position.height}`)
       console.log(`🔍 Crop info:`, cropInfo)
       console.log(`🔍 Fit mode:`, fitMode)
+      console.log(`🔍 Rotation:`, rotation, 'degrees')
+      console.log(`🔍 === END IMAGE POSITION DEBUG ===`)
+      
       return position
       
     } catch (error) {
@@ -970,10 +976,11 @@ class PPTXService {
             const cx = this.getAttribute(sldSz, 'cx')
             const cy = this.getAttribute(sldSz, 'cy')
             if (cx && cy) {
-              // Convert EMUs to pixels (1 inch = 914400 EMUs, assuming 96 DPI)
-              const emuToPixels = 96 / 914400
-              const rawWidth = Math.round(parseInt(cx) * emuToPixels)
-              const rawHeight = Math.round(parseInt(cy) * emuToPixels)
+                    // Convert EMUs to pixels (1 inch = 914400 EMUs, assuming 96 DPI)
+      // Use the same conversion factor for consistency
+      const emuToPixels = 1 / 12700
+      const rawWidth = Math.round(parseInt(cx) * emuToPixels)
+      const rawHeight = Math.round(parseInt(cy) * emuToPixels)
               
               // Scale down to a reasonable display size while maintaining aspect ratio
               // Target max dimension of 1200px
