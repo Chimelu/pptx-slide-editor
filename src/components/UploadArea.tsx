@@ -102,9 +102,9 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
               Choose File
             </button>
             
-            <p className="text-xs sm:text-sm text-gray-500">
-              Supports .pptx files up to 50MB
-            </p>
+                         <p className="text-xs sm:text-sm text-gray-500">
+               Supports .pptx files up to 4MB
+             </p>
           </div>
           
           <input
