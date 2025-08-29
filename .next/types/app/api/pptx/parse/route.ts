@@ -1,4 +1,4 @@
-// File: C:\Users\HP\pptx-editor\src\app\api\pptx\parse\route.ts
+// File: /Users/chukaezeoguine/Desktop/pptx-slide-editor/src/app/api/pptx/parse/route.ts
 import * as entry from '../../../../../../src/app/api/pptx/parse/route.js'
 import type { NextRequest } from 'next/server.js'
 

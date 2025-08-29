@@ -9,6 +9,8 @@ export const runtime = 'nodejs' // ensure Node runtime for Buffer/form-data
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Starting PPTX parsing...')
+    console.log('🔍 Environment:', process.env.NODE_ENV)
+    console.log('🔍 Runtime:', process.env.NEXT_RUNTIME)
     
     const contentType = request.headers.get('content-type') || ''
     if (!contentType.includes('multipart/form-data')) {
@@ -26,10 +28,12 @@ export async function POST(request: NextRequest) {
 
     console.log('📁 Processing file:', file.name, 'Size:', file.size, 'bytes')
 
-    // Check file size limit for Vercel
-    if (file.size > 4 * 1024 * 1024) { // 4MB limit
+    // Check file size limit for Vercel (reduced to 2MB for safety)
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
       console.log('❌ File too large:', file.size)
-      return NextResponse.json({ error: 'File too large. Maximum size is 4MB.' }, { status: 400 })
+      return NextResponse.json({ 
+        error: 'File too large. Maximum size is 2MB for Vercel deployment.' 
+      }, { status: 400 })
     }
 
     const arrayBuffer = await file.arrayBuffer()
@@ -37,24 +41,62 @@ export async function POST(request: NextRequest) {
 
     console.log('📦 Buffer created, size:', buffer.length)
 
+    // Add memory usage logging
+    const memUsage = process.memoryUsage()
+    console.log('🧠 Memory usage before parsing:', {
+      rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB'
+    })
+
     const pptxService = new PPTXService()
-    const presentation = await pptxService.parsePPTX(buffer)
+    
+    // Add timeout wrapper for Vercel
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Parsing timeout - function took too long')), 50000) // 50 second timeout
+    })
+    
+    const parsingPromise = pptxService.parsePPTX(buffer)
+    
+    const presentation = await Promise.race([parsingPromise, timeoutPromise])
 
     console.log('✅ Parsing completed successfully')
+    
+    // Log final memory usage
+    const finalMemUsage = process.memoryUsage()
+    console.log('🧠 Memory usage after parsing:', {
+      rss: Math.round(finalMemUsage.rss / 1024 / 1024) + 'MB',
+      heapUsed: Math.round(finalMemUsage.heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(finalMemUsage.heapTotal / 1024 / 1024) + 'MB'
+    })
+    
     return NextResponse.json(presentation)
   } catch (error) {
     console.error('❌ Error parsing PPTX file:', error)
     
-    // Provide more specific error messages
-    if (error instanceof Error) {
-      return NextResponse.json({ 
-        error: 'Failed to parse PPTX file', 
-        details: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      }, { status: 500 })
-    }
+          // Provide more specific error messages
+      if (error instanceof Error) {
+        const errorResponse: any = {
+          error: 'Failed to parse PPTX file',
+          details: error.message,
+          timestamp: new Date().toISOString(),
+          environment: process.env.NODE_ENV,
+          runtime: process.env.NEXT_RUNTIME || 'unknown'
+        }
+        
+        // Add stack trace in development
+        if (process.env.NODE_ENV === 'development') {
+          errorResponse.stack = error.stack
+        }
+        
+        console.error('❌ Detailed error response:', errorResponse)
+        return NextResponse.json(errorResponse, { status: 500 })
+      }
     
-    return NextResponse.json({ error: 'Failed to parse PPTX file' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to parse PPTX file',
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
   }
 }
 
@@ -65,12 +107,28 @@ class PPTXService {
     try {
       console.log('🔍 Starting PPTX parsing with buffer size:', buffer.length)
       
+      // Validate buffer
+      if (!buffer || buffer.length === 0) {
+        throw new Error('Empty or invalid buffer provided')
+      }
+      
+      // Check if buffer is too large for serverless
+      if (buffer.length > 2 * 1024 * 1024) { // 2MB
+        throw new Error(`Buffer too large: ${buffer.length} bytes (max: 2MB)`)
+      }
+      
       const zip = await JSZip.loadAsync(buffer)
       console.log('📦 JSZip loaded successfully')
 
       // Debug inventory
       const fileNames = Object.keys(zip.files)
       console.log('🔍 PPTX zip contents count:', fileNames.length)
+      
+      // Check if this looks like a valid PPTX
+      if (!fileNames.some(name => name.startsWith('ppt/'))) {
+        throw new Error('Invalid PPTX file: missing ppt/ directory')
+      }
+      
       for (const fileName of fileNames) {
         if (fileName.startsWith('ppt/media/')) console.log(`🖼️  media: ${fileName}`)
         else if (fileName.includes('/_rels/') && fileName.endsWith('.rels')) console.log(`🔗 rels: ${fileName}`)
@@ -79,6 +137,10 @@ class PPTXService {
 
       const slides = await this.readSlides(zip)
       console.log('📊 Slides parsed:', slides.length)
+      
+      if (slides.length === 0) {
+        console.warn('⚠️ No slides found in PPTX file')
+      }
       
       const properties = await this.readPresentationProps(zip)
       console.log('📋 Properties parsed')
@@ -98,6 +160,17 @@ class PPTXService {
       if (error instanceof Error) {
         console.error('❌ Error details:', error.message)
         console.error('❌ Error stack:', error.stack)
+        
+        // Provide more specific error messages for common issues
+        if (error.message.includes('JSZip')) {
+          throw new Error('Failed to read PPTX file - file may be corrupted or not a valid PPTX')
+        }
+        if (error.message.includes('XML')) {
+          throw new Error('Failed to parse PPTX content - file structure may be invalid')
+        }
+        if (error.message.includes('memory') || error.message.includes('Memory')) {
+          throw new Error('Parsing failed due to memory constraints - try a smaller file')
+        }
       }
       throw error
     }

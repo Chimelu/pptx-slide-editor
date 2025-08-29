@@ -1,4 +1,7 @@
 {
-  "/api/pptx/parse/route": "app/api/pptx/parse/route.js",
-  "/page": "app/page.js"
+  "/_not-found": "app/_not-found.js",
+  "/page": "app/page.js",
+  "/api/pptx/export/route": "app/api/pptx/export/route.js",
+  "/api/pptx/slides/[slideId]/route": "app/api/pptx/slides/[slideId]/route.js",
+  "/api/pptx/parse/route": "app/api/pptx/parse/route.js"
 }
