@@ -25,28 +25,31 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
+    console.log('📁 Drop event triggered')
     setIsDragOver(false)
     
     const files = Array.from(e.dataTransfer.files)
+    console.log('📁 Dropped files:', files)
     if (files.length > 0) {
       const file = files[0]
+      console.log('📁 Dropped file:', file.name, file.size, file.type)
       setSelectedFile(file)
       onFileUpload(file)
     }
   }, [onFileUpload])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 File input change event:', e.target.files)
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
       const file = files[0]
+      console.log('📁 Selected file:', file.name, file.size, file.type)
       setSelectedFile(file)
       onFileUpload(file)
     }
   }, [onFileUpload])
 
-  const handleClick = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
+
 
   const getFileSizeColor = (size: number) => {
     const sizeMB = size / (1024 * 1024)
@@ -80,8 +83,11 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
       <div className="max-w-md w-full">
         <div 
-          className="bg-white rounded-lg shadow-lg border-2 border-dashed border-gray-300 p-6 sm:p-8 text-center cursor-pointer hover:border-primary-400 hover:shadow-xl transition-all duration-200 hover:bg-gray-50"
-          onClick={() => fileInputRef.current?.click()}
+          className={`bg-white rounded-lg shadow-lg border-2 border-dashed p-6 sm:p-8 text-center transition-all duration-200 ${
+            isDragOver 
+              ? 'border-blue-400 bg-blue-50 shadow-xl' 
+              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+          }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -103,7 +109,7 @@ export function UploadArea({ onFileUpload, isLoading }: UploadAreaProps) {
           <div className="space-y-2 sm:space-y-3">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-primary-600 hover:bg-primary-700 text-white text-base sm:text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95"
+              className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-blue-700 hover:bg-blue-800 text-white text-base sm:text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95"
             >
               📁 Choose File to Upload
             </button>
